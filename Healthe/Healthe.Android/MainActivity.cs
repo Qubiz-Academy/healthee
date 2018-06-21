@@ -22,7 +22,7 @@ namespace Healthe.Droid
 
             global::Xamarin.Forms.Forms.Init(this, bundle);
 
-            //CrossCurrentActivity.Current.Activity.Init(this, bundle);
+            CrossCurrentActivity.Current.Init(this, bundle);
 
             LoadApplication(new App());
         }
@@ -31,6 +31,15 @@ namespace Healthe.Droid
         {
             Plugin.Permissions.PermissionsImplementation.Current.OnRequestPermissionsResult(requestCode, permissions, grantResults);
             base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+        void Register()
+        {
+            CrossCurrentActivity.Current.ActivityStateChanged += Current_ActivityStateChanged;
+        }
+
+        private void Current_ActivityStateChanged(object sender, ActivityEventArgs e)
+        {
+            Toast.MakeText(Application.Context, $"Activity Changed: {e.Activity.LocalClassName} -  {e.Event}", ToastLength.Short).Show();
         }
     }
 }
