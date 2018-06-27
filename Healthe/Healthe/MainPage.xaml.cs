@@ -26,6 +26,7 @@ namespace Healthe
 
             Distance = 2.3;
             Calories = 340;
+            Minutes = 0;
             Ok = IsLocationAvailable();
             
             
@@ -55,9 +56,8 @@ namespace Healthe
             _lastPosition = coordinate;
             var now = DateTime.Now;
             TimeSpan result = now.Subtract(initialTime);
-           //result.TotalMinutes
 
-
+            Minutes = (int)result.TotalMinutes;
         }
 
         public void StartTracking()
@@ -116,6 +116,15 @@ namespace Healthe
             get { return ok; }
             set {
                 ok = value;
+                OnPropertyChanged();
+            }
+        }
+        private int _minutes;
+
+        public int Minutes
+        {
+            get { return _minutes; }
+            set { _minutes = value;
                 OnPropertyChanged();
             }
         }
