@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using Xamarin.Forms;
-
+using Xamarin.Forms.Maps;
 
 namespace Healthe
 {
@@ -16,35 +16,61 @@ namespace Healthe
     {
         DistanceCalculator distanceCalculator;
         Coordinate _lastPosition;
-        Double DistanceInKilometers=0;
+        Double DistanceInKilometers = 0;
         DateTime initialTime;
+        Timer timer;
 
         public MainPage()
         {
             InitializeComponent();
             this.BindingContext = this;
 
-            Distance = 2.3;
-            Calories = 340;
+            Distance = 0;
+            Calories = 0;
             Minutes = 0;
             Ok = IsLocationAvailable();
-            
-            
+
+
             var position = CrossGeolocator.Current.GetLastKnownLocationAsync().Result;
-           // distanceCalculator = new DistanceCalculator(new Coordinate(position.Latitude, position.Longitude));
+            // distanceCalculator = new DistanceCalculator(new Coordinate(position.Latitude, position.Longitude));
             //var distance = distanceCalculator.GetDistanceInKilometers(new Coordinate(47.0414104187296, 21.93694286140203));
             //Distance = Math.Round(distance, 2);
             StartTracking();
             CrossGeolocator.Current.PositionChanged += Current_PositionChanged;
             initialTime = DateTime.Now;
+            timer = new Timer();
+            timer.Interval = 1000;
+            timer.Elapsed += Timer_Elapsed;
+            timer.Start();
+        }
+
+        private void Timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            var now = DateTime.Now;
+            TimeSpan result = now.Subtract(initialTime);
+
+            Minutes = (int)result.TotalMinutes;
+            Seconds = result.Seconds;
         }
 
         private void Current_PositionChanged(object sender, PositionEventArgs e)
         {
+            var newPosition = new Xamarin.Forms.Maps.Position(e.Position.Latitude, e.Position.Longitude);
+
+            var mapSpan = new MapSpan(newPosition, 0.1, 0.1);
+            RunMap.MoveToRegion(mapSpan);
+
+            var pin = new Pin();
+            pin.Position = newPosition;
+            pin.Type = PinType.Generic;
+            pin.Label = "test";
+
+            RunMap.Pins.Add(pin);
+
             Coordinate coordinate = new Coordinate(e.Position.Latitude, e.Position.Longitude);
-            if(_lastPosition==null)
+            if (_lastPosition == null)
             {
-                _lastPosition =coordinate;
+                _lastPosition = coordinate;
                 return;
 
             }
@@ -58,17 +84,18 @@ namespace Healthe
             TimeSpan result = now.Subtract(initialTime);
 
             Minutes = (int)result.TotalMinutes;
+            Seconds = result.Seconds;
         }
 
         public void StartTracking()
         {
             CrossGeolocator.Current.StartListeningAsync(TimeSpan.FromSeconds(1), 0.1);
-            
+
         }
 
-        public static async Task<Position> GetCuerrentPosition()
+        public static async Task<Plugin.Geolocator.Abstractions.Position> GetCurrentPosition()
         {
-            Position position = null;
+            Plugin.Geolocator.Abstractions.Position position = null;
             try
             {
                 var locator = CrossGeolocator.Current;
@@ -76,11 +103,11 @@ namespace Healthe
 
                 position = await locator.GetLastKnownLocationAsync();
 
-                if(position!=null)
+                if (position != null)
                 {
                     return position;
                 }
-                if(!IsLocationAvailable())
+                if (!IsLocationAvailable())
                 {
                     return null;
                 }
@@ -114,7 +141,8 @@ namespace Healthe
         public bool Ok
         {
             get { return ok; }
-            set {
+            set
+            {
                 ok = value;
                 OnPropertyChanged();
             }
@@ -124,10 +152,25 @@ namespace Healthe
         public int Minutes
         {
             get { return _minutes; }
-            set { _minutes = value;
+            set
+            {
+                _minutes = value;
                 OnPropertyChanged();
             }
         }
+
+        private int _seconds;
+
+        public int Seconds
+        {
+            get { return _seconds; }
+            set
+            {
+                _seconds = value;
+                OnPropertyChanged();
+            }
+        }
+
 
         private double _distance;
         public double Distance
@@ -136,6 +179,7 @@ namespace Healthe
             set
             {
                 _distance = value;
+                Calories = (int)(_distance * 50);
                 OnPropertyChanged();
             }
         }
